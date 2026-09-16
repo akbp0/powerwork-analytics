@@ -1,0 +1,1273 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>PowerWork Analytics</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Vazirmatn:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <style>
+    :root {
+      --bg: #fafafa;
+      --surface: #ffffff;
+      --ink: #1f2937;
+      --muted: #6b7280;
+      --line: #e5e7eb;
+      --accent: #0f766e;
+      --danger: #b91c1c;
+      --ok: #15803d;
+      --radius: 8px;
+      --sidebar: 220px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html {
+      min-width: 320px;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Inter, Vazirmatn, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      background: var(--bg);
+      line-height: 1.5;
+    }
+
+    button, input, select { font: inherit; }
+    button { cursor: pointer; }
+
+    .app {
+      display: grid;
+      grid-template-columns: var(--sidebar) minmax(0, 1fr);
+      min-height: 100vh;
+    }
+
+    /* ---------- Sidebar ---------- */
+
+    .sidebar {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      padding: 20px 16px;
+      background: var(--surface);
+      border-right: 1px solid var(--line);
+      overflow-y: auto;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 32px;
+      margin-bottom: 24px;
+      color: var(--ink);
+    }
+
+    .brand-mark {
+      display: grid;
+      place-items: center;
+      width: 30px;
+      height: 30px;
+      flex: 0 0 30px;
+      border-radius: 6px;
+      color: #ffffff;
+      background: var(--accent);
+    }
+
+    .brand-title strong {
+      display: block;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .brand-title span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .nav {
+      display: grid;
+      gap: 2px;
+      margin: 0 0 22px;
+      padding: 0;
+      list-style: none;
+    }
+
+    .nav a {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      min-height: 34px;
+      padding: 6px 8px;
+      border-radius: 6px;
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+      transition: background .15s ease, color .15s ease;
+    }
+
+    .nav a:hover, .nav a:focus-visible {
+      color: var(--ink);
+      background: var(--bg);
+      outline: none;
+    }
+
+    .nav a.active {
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    .sidebar-panel {
+      padding: 10px 0;
+      border-top: 1px solid var(--line);
+    }
+
+    .panel-kicker {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .03em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .sidebar-stat {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 3px 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .sidebar-stat strong {
+      color: var(--ink);
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+    }
+
+    /* ---------- Main ---------- */
+
+    .main {
+      min-width: 0;
+      padding: 28px 32px;
+      max-width: 1280px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 20px;
+    }
+
+    h1, h2, h3, p { margin: 0; }
+
+    h1 {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    .subtitle {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .btn, .icon-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      min-height: 34px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      color: var(--ink);
+      background: var(--surface);
+      text-decoration: none;
+      transition: border-color .15s ease, background .15s ease;
+    }
+
+    .btn { padding: 0 12px; font-size: 13px; font-weight: 600; }
+    .icon-btn { width: 34px; padding: 0; }
+    .btn:hover, .icon-btn:hover { border-color: #c7ced6; background: var(--bg); }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 28px;
+      padding: 0 10px;
+      border-radius: 999px;
+      color: var(--ok);
+      background: #f0fdf4;
+      font-size: 12px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .status-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+    .status-pill.offline { color: #92400e; background: #fffbeb; }
+
+    /* ---------- Filters ---------- */
+
+    .filters {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(120px, 1fr));
+      gap: 10px;
+      margin-bottom: 20px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+    }
+
+    label {
+      display: grid;
+      gap: 4px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .02em;
+    }
+
+    select, input[type="search"] {
+      width: 100%;
+      min-height: 34px;
+      padding: 0 9px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      color: var(--ink);
+      background: #ffffff;
+      outline: none;
+    }
+
+    select:focus, input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(15, 118, 110, .12);
+    }
+
+    /* ---------- KPI cards ---------- */
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .kpi-card, .chart-panel, .table-panel, .quality-panel {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+    }
+
+    .kpi-card {
+      display: grid;
+      gap: 10px;
+      padding: 16px;
+    }
+
+    .kpi-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--muted);
+    }
+
+    .metric-icon {
+      display: grid;
+      place-items: center;
+      width: 28px;
+      height: 28px;
+      flex: 0 0 28px;
+      border-radius: 6px;
+      color: var(--muted);
+      background: var(--bg);
+    }
+
+    .kpi-label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .kpi-value {
+      color: var(--ink);
+      font-size: 26px;
+      font-weight: 700;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .kpi-foot {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .delta { color: var(--ok); font-weight: 600; }
+
+    /* ---------- Layout grid ---------- */
+
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.3fr) minmax(300px, .7fr);
+      gap: 16px;
+      align-items: start;
+    }
+
+    .stack { display: grid; gap: 16px; min-width: 0; }
+    .chart-panel, .quality-panel, .table-panel { min-width: 0; overflow: hidden; }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-height: 48px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .panel-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      color: var(--ink);
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .panel-title span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    .panel-meta { color: var(--muted); font-size: 12px; white-space: nowrap; }
+
+    .chart-box { position: relative; height: 300px; padding: 12px; }
+    .chart-box.compact { height: 250px; }
+    .chart-box canvas { width: 100% !important; height: 100% !important; }
+
+    /* ---------- City ranking ---------- */
+
+    .ranking { display: grid; gap: 10px; padding: 14px 16px; }
+
+    .rank-row {
+      display: grid;
+      grid-template-columns: 22px minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .rank-index {
+      display: grid;
+      place-items: center;
+      width: 22px;
+      height: 22px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .rank-name { min-width: 0; color: var(--ink); font-size: 13px; font-weight: 600; }
+    .rank-name span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    .rank-bar { height: 5px; margin-top: 6px; border-radius: 999px; background: var(--bg); overflow: hidden; }
+    .rank-fill { height: 100%; border-radius: 999px; background: var(--accent); }
+
+    .rank-value { color: var(--ink); font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+    /* ---------- Table ---------- */
+
+    .table-tools {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .table-tools input { max-width: 280px; }
+
+    .table-wrap { width: 100%; overflow-x: auto; }
+
+    table { width: 100%; min-width: 720px; border-collapse: collapse; }
+
+    th, td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: middle;
+      font-size: 13px;
+    }
+
+    th {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .02em;
+      white-space: nowrap;
+    }
+
+    td { color: var(--ink); }
+    .number-cell { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 22px;
+      max-width: 100%;
+      padding: 0 8px;
+      border-radius: 999px;
+      color: var(--accent);
+      background: #f0fdfa;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .pagination {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 16px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .page-actions { display: flex; align-items: center; gap: 8px; }
+
+    /* ---------- Data quality ---------- */
+
+    .quality-list { display: grid; gap: 8px; max-height: 320px; overflow: auto; padding: 14px 16px; }
+
+    .quality-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      padding: 10px 12px;
+      border-left: 3px solid var(--danger);
+      background: var(--bg);
+      border-radius: 4px;
+    }
+
+    .quality-row strong {
+      display: block;
+      overflow: hidden;
+      color: var(--ink);
+      font-size: 13px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .quality-row span { display: block; margin-top: 2px; color: var(--muted); font-size: 12px; }
+
+    .variance { color: var(--danger); font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+    .empty-state {
+      display: grid;
+      place-items: center;
+      min-height: 120px;
+      padding: 20px;
+      color: var(--muted);
+      text-align: center;
+      font-size: 13px;
+    }
+
+    .skeleton { color: transparent !important; background: var(--line) !important; border-radius: 4px; opacity: .6; }
+
+    .toast {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      z-index: 10;
+      display: none;
+      max-width: min(380px, calc(100vw - 40px));
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      color: var(--ink);
+      background: var(--surface);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, .08);
+      font-size: 13px;
+    }
+
+    .toast.show { display: block; }
+
+    [hidden] { display: none !important; }
+
+    @media (max-width: 1180px) {
+      :root { --sidebar: 72px; }
+      .sidebar { padding: 16px 10px; }
+      .brand-title, .nav span, .sidebar-panel { display: none; }
+      .brand { justify-content: center; }
+      .nav a { justify-content: center; }
+      .filters { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 840px) {
+      .app { display: block; }
+      .sidebar {
+        position: static;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        height: auto;
+        padding: 12px;
+        overflow-x: auto;
+        border-right: none;
+        border-bottom: 1px solid var(--line);
+      }
+      .brand { margin: 0; }
+      .brand-title { display: block; width: 140px; }
+      .nav { display: flex; margin: 0; }
+      .nav a { min-width: 38px; }
+      .main { padding: 18px; }
+      .topbar { display: grid; }
+      h1 { font-size: 20px; }
+      .chart-box { height: 260px; }
+    }
+
+    @media (max-width: 560px) {
+      .filters, .kpi-grid { grid-template-columns: 1fr 1fr; }
+      .table-tools, .pagination, .panel-header {
+        align-items: stretch;
+        flex-direction: column;
+      }
+      .table-tools input { max-width: none; }
+      .page-actions { justify-content: space-between; }
+      .btn { width: 100%; }
+      .actions .btn, .actions .icon-btn { width: auto; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" aria-label="Primary">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true"><i data-lucide="activity"></i></div>
+        <div class="brand-title">
+          <strong>PowerWork Analytics</strong>
+          <span>Operations intelligence</span>
+        </div>
+      </div>
+
+      <nav>
+        <ul class="nav">
+          <li><a class="active" href="#overview" title="Overview"><i data-lucide="layout-dashboard"></i><span>Overview</span></a></li>
+          <li><a href="#trend" title="Trend"><i data-lucide="line-chart"></i><span>Trend</span></a></li>
+          <li><a href="#cities" title="Cities"><i data-lucide="map-pin"></i><span>Cities</span></a></li>
+          <li><a href="#details" title="Details"><i data-lucide="table-2"></i><span>Details</span></a></li>
+          <li><a href="#quality" title="Quality"><i data-lucide="shield-check"></i><span>Quality</span></a></li>
+        </ul>
+      </nav>
+
+      <div class="sidebar-panel">
+        <span class="panel-kicker">Selected Period</span>
+        <div class="sidebar-stat"><span>Period</span><strong id="sidePeriod">All</strong></div>
+        <div class="sidebar-stat"><span>Rows</span><strong id="sideRows">0</strong></div>
+      </div>
+
+      <div class="sidebar-panel">
+        <span class="panel-kicker">Data Quality</span>
+        <div class="sidebar-stat"><span>Mismatches</span><strong id="sideMismatch">0</strong></div>
+        <div class="sidebar-stat"><span>Mode</span><strong id="sideMode">Live</strong></div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar" id="overview">
+        <div>
+          <h1>Work order command center</h1>
+          <p class="subtitle">Fiscal workload, city concentration, workflow stages, and reconciliation health.</p>
+        </div>
+        <div class="actions">
+          <span class="status-pill" id="systemStatus"><span class="status-dot"></span><span>Live API</span></span>
+          <a class="btn" href="/api/docs/" target="_blank" rel="noreferrer"><i data-lucide="book-open"></i>Swagger</a>
+          <button class="icon-btn" id="refreshBtn" type="button" title="Refresh" aria-label="Refresh"><i data-lucide="refresh-cw"></i></button>
+        </div>
+      </header>
+
+      <section class="filters" aria-label="Dashboard filters">
+        <label>
+          Period
+          <select id="periodFilter"></select>
+        </label>
+        <label>
+          City
+          <select id="cityFilter"></select>
+        </label>
+        <label>
+          Category
+          <select id="categoryFilter"></select>
+        </label>
+        <label>
+          Rows
+          <select id="pageSizeFilter">
+            <option value="25">25</option>
+            <option value="50" selected>50</option>
+            <option value="100">100</option>
+            <option value="250">250</option>
+          </select>
+        </label>
+        <label>
+          Top Cities
+          <select id="limitFilter">
+            <option value="5">5</option>
+            <option value="10" selected>10</option>
+            <option value="20">20</option>
+            <option value="50">50</option>
+          </select>
+        </label>
+      </section>
+
+      <section class="kpi-grid" aria-label="KPI summary">
+        <article class="kpi-card">
+          <div class="kpi-top">
+            <span class="kpi-label">Open Work Orders</span>
+            <span class="metric-icon"><i data-lucide="briefcase-business"></i></span>
+          </div>
+          <strong class="kpi-value" id="kpiTotal">0</strong>
+          <div class="kpi-foot"><span id="kpiPeriod">Latest period</span><span class="delta" id="kpiTrend">0%</span></div>
+        </article>
+        <article class="kpi-card">
+          <div class="kpi-top">
+            <span class="kpi-label">Active Cities</span>
+            <span class="metric-icon"><i data-lucide="building-2"></i></span>
+          </div>
+          <strong class="kpi-value" id="kpiCities">0</strong>
+          <div class="kpi-foot"><span>Coverage</span><span class="delta" id="kpiCoverage">0</span></div>
+        </article>
+        <article class="kpi-card">
+          <div class="kpi-top">
+            <span class="kpi-label">Categories</span>
+            <span class="metric-icon"><i data-lucide="layers-3"></i></span>
+          </div>
+          <strong class="kpi-value" id="kpiCategories">0</strong>
+          <div class="kpi-foot"><span>Active workload types</span><span class="delta" id="kpiCategoryShare">0%</span></div>
+        </article>
+        <article class="kpi-card">
+          <div class="kpi-top">
+            <span class="kpi-label">Quality Alerts</span>
+            <span class="metric-icon"><i data-lucide="shield-alert"></i></span>
+          </div>
+          <strong class="kpi-value" id="kpiMismatch">0</strong>
+          <div class="kpi-foot"><span>Reconciliation rows</span><span class="delta" id="kpiQuality">OK</span></div>
+        </article>
+      </section>
+
+      <section class="grid">
+        <div class="stack">
+          <article class="chart-panel" id="trend">
+            <div class="panel-header">
+              <h2 class="panel-title"><i data-lucide="trending-up"></i><span>Monthly trend</span></h2>
+              <span class="panel-meta" id="trendMeta">0 points</span>
+            </div>
+            <div class="chart-box"><canvas id="trendChart"></canvas></div>
+          </article>
+
+          <article class="table-panel" id="details">
+            <div class="panel-header">
+              <h2 class="panel-title"><i data-lucide="list-filter"></i><span>Work-order details</span></h2>
+              <span class="panel-meta" id="tableMeta">0 rows</span>
+            </div>
+            <div class="table-tools">
+              <input id="tableSearch" type="search" placeholder="Search visible rows">
+              <button class="btn" id="exportBtn" type="button"><i data-lucide="download"></i>CSV</button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Period</th>
+                    <th>City</th>
+                    <th>Business Unit</th>
+                    <th>Category</th>
+                    <th>Status</th>
+                    <th>Stage</th>
+                    <th>Open Orders</th>
+                  </tr>
+                </thead>
+                <tbody id="workOrderRows"></tbody>
+              </table>
+            </div>
+            <div class="pagination">
+              <span id="pageInfo">Page 1 of 1</span>
+              <div class="page-actions">
+                <button class="btn" id="prevPage" type="button"><i data-lucide="chevron-left"></i>Prev</button>
+                <button class="btn" id="nextPage" type="button">Next<i data-lucide="chevron-right"></i></button>
+              </div>
+            </div>
+          </article>
+        </div>
+
+        <div class="stack">
+          <article class="chart-panel">
+            <div class="panel-header">
+              <h2 class="panel-title"><i data-lucide="pie-chart"></i><span>Category mix</span></h2>
+              <span class="panel-meta" id="categoryMeta">0 categories</span>
+            </div>
+            <div class="chart-box compact"><canvas id="categoryChart"></canvas></div>
+          </article>
+
+          <article class="chart-panel">
+            <div class="panel-header">
+              <h2 class="panel-title"><i data-lucide="funnel"></i><span>Status funnel</span></h2>
+              <span class="panel-meta" id="funnelMeta">0 stages</span>
+            </div>
+            <div class="chart-box compact"><canvas id="funnelChart"></canvas></div>
+          </article>
+
+          <article class="chart-panel" id="cities">
+            <div class="panel-header">
+              <h2 class="panel-title"><i data-lucide="map"></i><span>City ranking</span></h2>
+              <span class="panel-meta" id="cityMeta">0 cities</span>
+            </div>
+            <div class="ranking" id="cityRanking"></div>
+          </article>
+
+          <article class="quality-panel" id="quality">
+            <div class="panel-header">
+              <h2 class="panel-title"><i data-lucide="badge-alert"></i><span>Reconciliation</span></h2>
+              <span class="panel-meta" id="qualityMeta">0 alerts</span>
+            </div>
+            <div class="quality-list" id="qualityList"></div>
+          </article>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    const API = "/api/analytics";
+    const fmt = new Intl.NumberFormat("en-US");
+    const chartColors = ["#0f766e", "#2563eb", "#d97706", "#dc2626", "#7c3aed", "#0891b2", "#65a30d", "#be123c"];
+
+    const demo = {
+      filters: {
+        periods: [
+          { date_key: 140107, period_label: "1401-07", fiscal_year: 1401, fiscal_month: 7 },
+          { date_key: 140108, period_label: "1401-08", fiscal_year: 1401, fiscal_month: 8 },
+          { date_key: 140109, period_label: "1401-09", fiscal_year: 1401, fiscal_month: 9 }
+        ],
+        cities: [
+          { city_key: 1, city_name: "Tehran", business_unit_code: "BU-01" },
+          { city_key: 2, city_name: "Shiraz", business_unit_code: "BU-02" },
+          { city_key: 3, city_name: "Isfahan", business_unit_code: "BU-03" },
+          { city_key: 4, city_name: "Mashhad", business_unit_code: "BU-04" }
+        ],
+        categories: [
+          { category_key: 1, category_code: "CAT_1", category_name: "Electrical" },
+          { category_key: 2, category_code: "CAT_2", category_name: "Mechanical" },
+          { category_key: 3, category_code: "CAT_3", category_name: "Civil" },
+          { category_key: 4, category_code: "CAT_4", category_name: "Safety" }
+        ]
+      },
+      kpis: { period_label: "1401-09", total_open_work_orders: 4381, active_cities: 16, active_categories: 7 },
+      trend: [
+        { date_key: 140104, period_label: "1401-04", total_open_work_orders: 3110 },
+        { date_key: 140105, period_label: "1401-05", total_open_work_orders: 3275 },
+        { date_key: 140106, period_label: "1401-06", total_open_work_orders: 3520 },
+        { date_key: 140107, period_label: "1401-07", total_open_work_orders: 3890 },
+        { date_key: 140108, period_label: "1401-08", total_open_work_orders: 4215 },
+        { date_key: 140109, period_label: "1401-09", total_open_work_orders: 4381 }
+      ],
+      categories: [
+        { category_code: "CAT_1", category_name: "Electrical", total_open_work_orders: 1120 },
+        { category_code: "CAT_2", category_name: "Mechanical", total_open_work_orders: 980 },
+        { category_code: "CAT_3", category_name: "Civil", total_open_work_orders: 845 },
+        { category_code: "CAT_4", category_name: "Safety", total_open_work_orders: 620 },
+        { category_code: "CAT_5", category_name: "Inspection", total_open_work_orders: 430 }
+      ],
+      funnel: [
+        { status_name: "New", stage_order: 1, total_open_work_orders: 1430 },
+        { status_name: "Assigned", stage_order: 2, total_open_work_orders: 1124 },
+        { status_name: "In progress", stage_order: 3, total_open_work_orders: 980 },
+        { status_name: "Pending materials", stage_order: 4, total_open_work_orders: 502 },
+        { status_name: "Ready to close", stage_order: 5, total_open_work_orders: 345 }
+      ],
+      cities: [
+        { city_name: "Tehran", business_unit_code: "BU-01", total_open_work_orders: 910 },
+        { city_name: "Shiraz", business_unit_code: "BU-02", total_open_work_orders: 720 },
+        { city_name: "Isfahan", business_unit_code: "BU-03", total_open_work_orders: 588 },
+        { city_name: "Mashhad", business_unit_code: "BU-04", total_open_work_orders: 470 },
+        { city_name: "Tabriz", business_unit_code: "BU-05", total_open_work_orders: 355 }
+      ],
+      workOrders: {
+        page: 1,
+        page_size: 50,
+        total_items: 8,
+        total_pages: 1,
+        items: [
+          { period_label: "1401-09", city_name: "Tehran", business_unit_code: "BU-01", category_code: "CAT_1", category_name: "Electrical", status_name: "In progress", stage_order: 3, open_work_order_count: 142 },
+          { period_label: "1401-09", city_name: "Tehran", business_unit_code: "BU-01", category_code: "CAT_2", category_name: "Mechanical", status_name: "Assigned", stage_order: 2, open_work_order_count: 118 },
+          { period_label: "1401-09", city_name: "Shiraz", business_unit_code: "BU-02", category_code: "CAT_3", category_name: "Civil", status_name: "New", stage_order: 1, open_work_order_count: 96 },
+          { period_label: "1401-09", city_name: "Isfahan", business_unit_code: "BU-03", category_code: "CAT_4", category_name: "Safety", status_name: "Pending materials", stage_order: 4, open_work_order_count: 74 },
+          { period_label: "1401-09", city_name: "Mashhad", business_unit_code: "BU-04", category_code: "CAT_5", category_name: "Inspection", status_name: "Ready to close", stage_order: 5, open_work_order_count: 63 },
+          { period_label: "1401-08", city_name: "Tabriz", business_unit_code: "BU-05", category_code: "CAT_1", category_name: "Electrical", status_name: "Assigned", stage_order: 2, open_work_order_count: 55 },
+          { period_label: "1401-08", city_name: "Shiraz", business_unit_code: "BU-02", category_code: "CAT_2", category_name: "Mechanical", status_name: "In progress", stage_order: 3, open_work_order_count: 49 },
+          { period_label: "1401-07", city_name: "Tehran", business_unit_code: "BU-01", category_code: "CAT_4", category_name: "Safety", status_name: "New", stage_order: 1, open_work_order_count: 42 }
+        ]
+      },
+      reconciliation: {
+        mismatch_count: 2,
+        mismatches: [
+          { period_label: "1401-09", city_name: "Tehran", category_name: "Electrical", reported_total: 1000, derived_total: 982, variance: 18 },
+          { period_label: "1401-08", city_name: "Shiraz", category_name: "Mechanical", reported_total: 512, derived_total: 530, variance: -18 }
+        ]
+      }
+    };
+
+    const state = {
+      filters: { period: "", city: "", category: "", pageSize: 50, limit: 10, search: "" },
+      page: 1,
+      demoMode: false,
+      charts: {},
+      data: { trend: [], workOrders: { items: [], page: 1, total_pages: 1, total_items: 0 } }
+    };
+
+    const $ = (id) => document.getElementById(id);
+    const els = {
+      status: $("systemStatus"),
+      toast: $("toast"),
+      period: $("periodFilter"),
+      city: $("cityFilter"),
+      category: $("categoryFilter"),
+      pageSize: $("pageSizeFilter"),
+      limit: $("limitFilter"),
+      tableSearch: $("tableSearch")
+    };
+
+    function number(value) {
+      return fmt.format(Number(value || 0));
+    }
+
+    function showToast(message) {
+      els.toast.textContent = message;
+      els.toast.classList.add("show");
+      window.clearTimeout(showToast.timer);
+      showToast.timer = window.setTimeout(() => els.toast.classList.remove("show"), 4200);
+    }
+
+    function setMode(isDemo) {
+      state.demoMode = isDemo;
+      els.status.classList.toggle("offline", isDemo);
+      els.status.querySelector("span:last-child").textContent = isDemo ? "Demo data" : "Live API";
+      $("sideMode").textContent = isDemo ? "Demo" : "Live";
+    }
+
+    async function apiGet(path, params = {}) {
+      if (state.demoMode) return demoResponse(path);
+      const query = new URLSearchParams();
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== "") query.set(key, value);
+      });
+      const url = `${API}${path}${query.toString() ? `?${query}` : ""}`;
+      const res = await fetch(url, { headers: { Accept: "application/json" } });
+      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+      return res.json();
+    }
+
+    function demoResponse(path) {
+      if (path === "/filters") return demo.filters;
+      if (path === "/kpis") return demo.kpis;
+      if (path === "/trend") return demo.trend;
+      if (path === "/categories/breakdown") return demo.categories;
+      if (path === "/status/funnel") return demo.funnel;
+      if (path === "/cities/ranking") return demo.cities.slice(0, state.filters.limit);
+      if (path === "/work-orders") return demo.workOrders;
+      if (path === "/data-quality/reconciliation") return demo.reconciliation;
+      return {};
+    }
+
+    function option(value, label) {
+      const node = document.createElement("option");
+      node.value = value;
+      node.textContent = label;
+      return node;
+    }
+
+    function fillSelect(select, items, valueKey, labelKey, allLabel) {
+      const current = select.value;
+      select.replaceChildren(option("", allLabel));
+      items.forEach((item) => select.appendChild(option(item[valueKey], item[labelKey])));
+      select.value = [...select.options].some((item) => item.value === current) ? current : "";
+    }
+
+    async function loadFilters() {
+      try {
+        const filters = await apiGet("/filters");
+        fillSelect(els.period, filters.periods || [], "period_label", "period_label", "All periods");
+        fillSelect(els.city, filters.cities || [], "city_name", "city_name", "All cities");
+        fillSelect(els.category, filters.categories || [], "category_code", "category_name", "All categories");
+        if (!state.filters.period && (filters.periods || []).length) {
+          state.filters.period = filters.periods.at(-1).period_label;
+          els.period.value = state.filters.period;
+        }
+        $("kpiCoverage").textContent = number((filters.cities || []).length);
+      } catch (error) {
+        setMode(true);
+        showToast("API unavailable. Showing demo data.");
+        return loadFilters();
+      }
+    }
+
+    async function refreshAll() {
+      setLoading(true);
+      try {
+        await loadTrend();
+        await Promise.all([
+          loadKpis(),
+          loadPeriodPanels(),
+          loadWorkOrders(),
+          loadQuality()
+        ]);
+      } catch (error) {
+        if (!state.demoMode) {
+          setMode(true);
+          showToast("Live API request failed. Switched to demo data.");
+          await refreshAll();
+        } else {
+          showToast(error.message || "Unable to load dashboard data.");
+        }
+      } finally {
+        setLoading(false);
+        renderIcons();
+      }
+    }
+
+    async function loadKpis() {
+      const data = await apiGet("/kpis");
+      const previous = state.data.trend.at(-2)?.total_open_work_orders || data.total_open_work_orders;
+      const change = previous ? ((data.total_open_work_orders - previous) / previous) * 100 : 0;
+      $("kpiTotal").textContent = number(data.total_open_work_orders);
+      $("kpiCities").textContent = number(data.active_cities);
+      $("kpiCategories").textContent = number(data.active_categories);
+      $("kpiPeriod").textContent = data.period_label || "Latest period";
+      $("kpiTrend").textContent = `${change >= 0 ? "+" : ""}${change.toFixed(1)}%`;
+      $("kpiCategoryShare").textContent = `${number(data.active_categories)} types`;
+    }
+
+    async function loadTrend() {
+      const trend = await apiGet("/trend");
+      state.data.trend = trend || [];
+      $("trendMeta").textContent = `${number(trend.length)} points`;
+      renderTrend(trend);
+    }
+
+    async function loadPeriodPanels() {
+      const params = { period: state.filters.period };
+      const [categories, funnel, cities] = await Promise.all([
+        apiGet("/categories/breakdown", params),
+        apiGet("/status/funnel", params),
+        apiGet("/cities/ranking", { ...params, limit: state.filters.limit })
+      ]);
+      renderCategories(categories || []);
+      renderFunnel(funnel || []);
+      renderCities(cities || []);
+    }
+
+    async function loadWorkOrders() {
+      const payload = await apiGet("/work-orders", {
+        city: state.filters.city,
+        period: state.filters.period,
+        category: state.filters.category,
+        page: state.page,
+        page_size: state.filters.pageSize
+      });
+      state.data.workOrders = payload;
+      renderWorkOrders();
+    }
+
+    async function loadQuality() {
+      const report = await apiGet("/data-quality/reconciliation");
+      const count = report.mismatch_count || 0;
+      $("kpiMismatch").textContent = number(count);
+      $("kpiQuality").textContent = count ? "Review" : "OK";
+      $("sideMismatch").textContent = number(count);
+      $("qualityMeta").textContent = `${number(count)} alerts`;
+      renderQuality(report.mismatches || []);
+    }
+
+    function chartOptions(extra = {}) {
+      return {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { intersect: false, mode: "index" },
+        plugins: {
+          legend: { labels: { usePointStyle: true, boxWidth: 8, font: { family: "Inter, Vazirmatn" } } },
+          tooltip: { padding: 12, cornerRadius: 8, titleFont: { family: "Inter, Vazirmatn" }, bodyFont: { family: "Inter, Vazirmatn" } }
+        },
+        scales: {
+          x: { grid: { display: false }, ticks: { color: "#64748b", maxRotation: 0, autoSkip: true } },
+          y: { beginAtZero: true, grid: { color: "#edf2f7" }, ticks: { color: "#64748b" } }
+        },
+        ...extra
+      };
+    }
+
+    function upsertChart(key, config) {
+      const canvas = $(key);
+      if (!window.Chart || !canvas) {
+        const host = canvas ? canvas.closest(".chart-box") : null;
+        if (host) host.innerHTML = `<div class="empty-state">Chart library unavailable</div>`;
+        return;
+      }
+      if (state.charts[key]) state.charts[key].destroy();
+      state.charts[key] = new Chart(canvas, config);
+    }
+
+    function renderTrend(rows) {
+      upsertChart("trendChart", {
+        type: "line",
+        data: {
+          labels: rows.map((row) => row.period_label),
+          datasets: [{
+            label: "Open work orders",
+            data: rows.map((row) => row.total_open_work_orders),
+            borderColor: "#0f766e",
+            backgroundColor: "rgba(15, 118, 110, .12)",
+            borderWidth: 3,
+            fill: true,
+            pointRadius: 3,
+            pointHoverRadius: 6,
+            tension: .35
+          }]
+        },
+        options: chartOptions()
+      });
+    }
+
+    function renderCategories(rows) {
+      const top = rows.slice(0, 8);
+      $("categoryMeta").textContent = `${number(rows.length)} categories`;
+      upsertChart("categoryChart", {
+        type: "doughnut",
+        data: {
+          labels: top.map((row) => row.category_name || row.category_code),
+          datasets: [{
+            data: top.map((row) => row.total_open_work_orders),
+            backgroundColor: chartColors,
+            borderColor: "#ffffff",
+            borderWidth: 3
+          }]
+        },
+        options: chartOptions({
+          cutout: "62%",
+          scales: {},
+          plugins: {
+            legend: { position: "bottom", labels: { usePointStyle: true, boxWidth: 8 } },
+            tooltip: { padding: 12, cornerRadius: 8 }
+          }
+        })
+      });
+    }
+
+    function renderFunnel(rows) {
+      $("funnelMeta").textContent = `${number(rows.length)} stages`;
+      upsertChart("funnelChart", {
+        type: "bar",
+        data: {
+          labels: rows.map((row) => row.status_name),
+          datasets: [{
+            label: "Open orders",
+            data: rows.map((row) => row.total_open_work_orders),
+            backgroundColor: rows.map((_, index) => chartColors[index % chartColors.length]),
+            borderRadius: 6,
+            barThickness: 18
+          }]
+        },
+        options: chartOptions({
+          indexAxis: "y",
+          plugins: { legend: { display: false }, tooltip: { padding: 12, cornerRadius: 8 } },
+          scales: {
+            x: { beginAtZero: true, grid: { color: "#edf2f7" }, ticks: { color: "#64748b" } },
+            y: { grid: { display: false }, ticks: { color: "#475569" } }
+          }
+        })
+      });
+    }
+
+    function renderCities(rows) {
+      const target = $("cityRanking");
+      const max = Math.max(...rows.map((row) => Number(row.total_open_work_orders || 0)), 1);
+      $("cityMeta").textContent = `${number(rows.length)} cities`;
+      if (!rows.length) {
+        target.innerHTML = `<div class="empty-state">No city rows</div>`;
+        return;
+      }
+      target.innerHTML = rows.map((row, index) => `
+        <div class="rank-row">
+          <span class="rank-index">${index + 1}</span>
+          <div class="rank-name">
+            <span>${escapeHtml(row.city_name || "Unknown")}</span>
+            <div class="rank-bar"><div class="rank-fill" style="width:${(Number(row.total_open_work_orders || 0) / max) * 100}%"></div></div>
+          </div>
+          <strong class="rank-value">${number(row.total_open_work_orders)}</strong>
+        </div>
+      `).join("");
+    }
+
+    function renderWorkOrders() {
+      const payload = state.data.workOrders || { items: [], page: 1, total_pages: 1, total_items: 0 };
+      const query = state.filters.search.trim().toLowerCase();
+      const rows = (payload.items || []).filter((row) => !query || Object.values(row).join(" ").toLowerCase().includes(query));
+      const target = $("workOrderRows");
+      $("tableMeta").textContent = `${number(payload.total_items || rows.length)} rows`;
+      $("sideRows").textContent = number(payload.total_items || rows.length);
+      $("sidePeriod").textContent = state.filters.period || "All";
+      $("pageInfo").textContent = `Page ${number(payload.page || 1)} of ${number(payload.total_pages || 1)}`;
+      $("prevPage").disabled = (payload.page || 1) <= 1;
+      $("nextPage").disabled = (payload.page || 1) >= (payload.total_pages || 1);
+      if (!rows.length) {
+        target.innerHTML = `<tr><td colspan="7"><div class="empty-state">No matching work orders</div></td></tr>`;
+        return;
+      }
+      target.innerHTML = rows.map((row) => `
+        <tr>
+          <td>${escapeHtml(row.period_label || "")}</td>
+          <td><strong>${escapeHtml(row.city_name || "")}</strong></td>
+          <td>${escapeHtml(row.business_unit_code || "")}</td>
+          <td><span class="tag">${escapeHtml(row.category_name || row.category_code || "")}</span></td>
+          <td>${escapeHtml(row.status_name || "")}</td>
+          <td>${escapeHtml(row.stage_order || "")}</td>
+          <td class="number-cell">${number(row.open_work_order_count)}</td>
+        </tr>
+      `).join("");
+    }
+
+    function renderQuality(rows) {
+      const target = $("qualityList");
+      if (!rows.length) {
+        target.innerHTML = `<div class="empty-state">No reconciliation alerts</div>`;
+        return;
+      }
+      target.innerHTML = rows.slice(0, 20).map((row) => `
+        <div class="quality-row">
+          <div>
+            <strong>${escapeHtml(row.city_name || "")} - ${escapeHtml(row.category_name || "")}</strong>
+            <span>${escapeHtml(row.period_label || "")} - reported ${number(row.reported_total)} - derived ${number(row.derived_total)}</span>
+          </div>
+          <span class="variance">${number(row.variance)}</span>
+        </div>
+      `).join("");
+    }
+
+    function exportCsv() {
+      const rows = state.data.workOrders.items || [];
+      const headers = ["period_label", "city_name", "business_unit_code", "category_code", "category_name", "status_name", "stage_order", "open_work_order_count"];
+      const csv = [
+        headers.join(","),
+        ...rows.map((row) => headers.map((key) => `"${String(row[key] ?? "").replaceAll("\"", "\"\"")}"`).join(","))
+      ].join("\n");
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `powerwork-work-orders-${state.filters.period || "all"}.csv`;
+      link.click();
+      URL.revokeObjectURL(link.href);
+    }
+
+    function setLoading(active) {
+      document.querySelectorAll(".kpi-value").forEach((node) => node.classList.toggle("skeleton", active));
+      $("refreshBtn").disabled = active;
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, (char) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        "\"": "&quot;",
+        "'": "&#039;"
+      }[char]));
+    }
+
+    function bindEvents() {
+      $("refreshBtn").addEventListener("click", refreshAll);
+      $("exportBtn").addEventListener("click", exportCsv);
+      els.period.addEventListener("change", async () => {
+        state.filters.period = els.period.value;
+        state.page = 1;
+        await Promise.all([loadPeriodPanels(), loadWorkOrders()]);
+      });
+      els.city.addEventListener("change", async () => {
+        state.filters.city = els.city.value;
+        state.page = 1;
+        await loadWorkOrders();
+      });
+      els.category.addEventListener("change", async () => {
+        state.filters.category = els.category.value;
+        state.page = 1;
+        await loadWorkOrders();
+      });
+      els.pageSize.addEventListener("change", async () => {
+        state.filters.pageSize = Number(els.pageSize.value);
+        state.page = 1;
+        await loadWorkOrders();
+      });
+      els.limit.addEventListener("change", async () => {
+        state.filters.limit = Number(els.limit.value);
+        await loadPeriodPanels();
+      });
+      els.tableSearch.addEventListener("input", () => {
+        state.filters.search = els.tableSearch.value;
+        renderWorkOrders();
+      });
+      $("prevPage").addEventListener("click", async () => {
+        state.page = Math.max(1, state.page - 1);
+        await loadWorkOrders();
+      });
+      $("nextPage").addEventListener("click", async () => {
+        state.page += 1;
+        await loadWorkOrders();
+      });
+    }
+
+    function renderIcons() {
+      if (window.lucide) window.lucide.createIcons({ attrs: { width: 17, height: 17, strokeWidth: 2 } });
+    }
+
+    async function boot() {
+      renderIcons();
+      bindEvents();
+      await loadFilters();
+      state.filters.pageSize = Number(els.pageSize.value);
+      state.filters.limit = Number(els.limit.value);
+      await refreshAll();
+    }
+
+    boot();
+  </script>
+</body>
+</html>

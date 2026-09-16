@@ -1,0 +1,64 @@
+erDiagram
+    dim_city {
+        int city_key PK
+        text city_name
+        text business_unit_code
+        boolean is_company_total
+        boolean is_active
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    dim_date {
+        int date_key PK
+        smallint fiscal_year
+        smallint fiscal_month
+        text period_label
+        date gregorian_month_start
+    }
+
+    dim_category {
+        int category_key PK
+        text category_code
+        text category_name
+        smallint display_order
+    }
+
+    dim_status {
+        int status_key PK
+        text status_code
+        text status_name
+        smallint stage_order
+    }
+
+    fact_work_order_status {
+        bigint fact_id PK
+        int city_key FK
+        int date_key FK
+        int category_key FK
+        int status_key FK
+        int open_work_order_count
+        uuid batch_id
+        timestamptz loaded_at
+    }
+
+    fact_category_reconciliation {
+        bigint reconciliation_id PK
+        int city_key FK
+        int date_key FK
+        int category_key FK
+        int reported_total
+        int derived_total
+        boolean is_reconciled
+        uuid batch_id
+        timestamptz loaded_at
+    }
+
+    dim_city ||--o{ fact_work_order_status : has
+    dim_date ||--o{ fact_work_order_status : has
+    dim_category ||--o{ fact_work_order_status : has
+    dim_status ||--o{ fact_work_order_status : has
+
+    dim_city ||--o{ fact_category_reconciliation : has
+    dim_date ||--o{ fact_category_reconciliation : has
+    dim_category ||--o{ fact_category_reconciliation : has

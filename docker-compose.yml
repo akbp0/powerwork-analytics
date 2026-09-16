@@ -1,0 +1,194 @@
+services:
+  source-db:
+    image: docker.arvancloud.ir/postgres:17
+    container_name: powerwork-source-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${SOURCE_POSTGRES_DB:-source_db}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    ports:
+      - "127.0.0.1:${SOURCE_DB_PORT:-5433}:5432"
+    volumes:
+      - source_db_data:/var/lib/postgresql/data
+      - ./sql/source:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-postgres} -d ${SOURCE_POSTGRES_DB:-source_db}"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  warehouse-db:
+    image: docker.arvancloud.ir/postgres:17
+    container_name: powerwork-warehouse-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${WAREHOUSE_POSTGRES_DB:-warehouse_db}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    ports:
+      - "127.0.0.1:${WAREHOUSE_DB_PORT:-5434}:5432"
+    volumes:
+      - warehouse_db_data:/var/lib/postgresql/data
+      - ./sql/warehouse:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-postgres} -d ${WAREHOUSE_POSTGRES_DB:-warehouse_db}"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  # Throwaway database used only by the `tests` service below. Kept
+  # completely separate from warehouse-db so running the test suite can
+  # never truncate/overwrite real ETL-loaded data. tmpfs storage means it
+  # starts empty every run and leaves nothing behind on disk.
+  test-db:
+    image: docker.arvancloud.ir/postgres:17
+    container_name: powerwork-test-db
+    tmpfs:
+      - /var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: ${TEST_WAREHOUSE_POSTGRES_DB:-test_warehouse_db}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-postgres} -d ${TEST_WAREHOUSE_POSTGRES_DB:-test_warehouse_db}"
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: powerwork-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@powerwork.local}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin123}
+      PGADMIN_CONFIG_SERVER_MODE: "True"
+    ports:
+      - "127.0.0.1:${PGADMIN_PORT:-5050}:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+      - ./pgadmin/servers.json:/pgadmin4/servers.json:ro
+    depends_on:
+      source-db:
+        condition: service_healthy
+      warehouse-db:
+        condition: service_healthy
+
+  # Runs the pytest suite (including tests/api/test_analytics_integration.py)
+  # against test-db and exits. api's `depends_on: tests: condition:
+  # service_completed_successfully` means the API (and therefore nginx)
+  # never starts unless this exits 0.
+  tests:
+    build: .
+    container_name: powerwork-tests
+    environment:
+      WAREHOUSE_DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@test-db:5432/${TEST_WAREHOUSE_POSTGRES_DB:-test_warehouse_db}
+    volumes:
+      - ./tests:/app/tests:ro
+      - ./sql:/app/sql:ro
+      - ./pyproject.toml:/app/pyproject.toml:ro
+    command: ["pytest", "-v"]
+    depends_on:
+      test-db:
+        condition: service_healthy
+
+  api:
+    build: .
+    container_name: powerwork-api
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      SOURCE_DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@source-db:5432/${SOURCE_POSTGRES_DB:-source_db}
+      WAREHOUSE_DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@warehouse-db:5432/${WAREHOUSE_POSTGRES_DB:-warehouse_db}
+    ports:
+      - "127.0.0.1:${API_HTTP_PORT:-5000}:5000"
+    expose:
+      - "5000"
+    depends_on:
+      etl:
+        condition: service_completed_successfully
+      tests:
+        condition: service_completed_successfully
+      source-db:
+        condition: service_healthy
+      warehouse-db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/api/health', timeout=3).read()"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  nginx:
+    image: docker.arvancloud.ir/nginx:1.27-alpine
+    container_name: powerwork-nginx
+    restart: unless-stopped
+    ports:
+      - "${NGINX_HTTP_PORT:-8080}:80"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./dashboard:/usr/share/nginx/html:ro
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -qO- http://127.0.0.1/nginx-health >/dev/null 2>&1 || exit 1"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
+
+  etl:
+    build: .
+    container_name: powerwork-etl
+    env_file:
+      - .env
+    environment:
+      SOURCE_DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@source-db:5432/${SOURCE_POSTGRES_DB:-source_db}
+      WAREHOUSE_DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@warehouse-db:5432/${WAREHOUSE_POSTGRES_DB:-warehouse_db}
+    command:
+      [
+        "python",
+        "-m",
+        "etl.run_etl",
+        "--file",
+        "data/raw/2016.xlsx"
+      ]
+    depends_on:
+      source-db:
+        condition: service_healthy
+      warehouse-db:
+        condition: service_healthy
+
+volumes:
+  source_db_data:
+  warehouse_db_data:
+  pgadmin_data:
