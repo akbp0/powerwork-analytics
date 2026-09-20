@@ -145,9 +145,9 @@ class WorkOrderTransformer(BaseTransformer[RawRecord, TransformResult]):
         return fiscal_year, fiscal_month
 
     def _transform_categories(self, rec: RawRecord, date_key: int,
-                               dim_categories: dict[str, DimCategory],
-                               facts: list[FactRow],
-                               reconciliations: list[ReconciliationRow]) -> None:
+                              dim_categories: dict[str, DimCategory],
+                              facts: list[FactRow],
+                              reconciliations: list[ReconciliationRow]) -> None:
         for order, (block_key, statuses) in enumerate(rec.category_columns.items()):
             _, category_name = block_key.split(":", 1)
             category_code = f"CAT_{order + 1}" if order < 7 else "CAT_GRAND_TOTAL"
@@ -156,32 +156,44 @@ class WorkOrderTransformer(BaseTransformer[RawRecord, TransformResult]):
                 DimCategory(category_code=category_code, category_name=category_name, display_order=order + 1),
             )
             if category_code == "CAT_GRAND_TOTAL":
-                # This block is the row's overall total across all categories,
-                # not a category in its own right — used only as a sanity
-                # check, not modeled as an 8th dim_category member.
                 continue
 
             reported_total = None
             derived_total = 0
+
+            numeric_values = []
             for status_label, raw_value in statuses.items():
-                value = self._to_int(
-                    raw_value,
-                    context=f"row {rec.source_row_number} / {category_name} / {status_label}",
-                )
-                if self.TOTAL_COLUMN_PATTERN.search(status_label):
-                    reported_total = value
-                    continue
-                derived_total += value
-                facts.append(
-                    FactRow(
-                        city_name=rec.city_name,
-                        date_key=date_key,
-                        category_code=category_code,
-                        status_code=self._status_code(status_label),
-                        status_name=status_label.strip(),
-                        open_work_order_count=value,
-                    )
-                )
+                val = self._to_int(raw_value, context=f"row {rec.source_row_number} / {category_name} / {status_label}")
+                if not self.TOTAL_COLUMN_PATTERN.search(status_label):
+                    derived_total += val
+
+                    if not rec.is_aggregate_row:
+                        facts.append(
+                            FactRow(
+                                city_name=rec.city_name,
+                                date_key=date_key,
+                                category_code=category_code,
+                                status_code=self._status_code(status_label),
+                                status_name=status_label.strip(),
+                                open_work_order_count=val,
+                            )
+                        )
+
+                if val > 0:
+                    numeric_values.append(val)
+
+            if rec.is_aggregate_row:
+                if numeric_values:
+                    reported_total = sum(numeric_values)  # یا max(numeric_values)
+                else:
+                    reported_total = 0
+            else:
+                for status_label, raw_value in statuses.items():
+                    if self.TOTAL_COLUMN_PATTERN.search(status_label):
+                        reported_total = self._to_int(raw_value,
+                                                      context=f"row {rec.source_row_number} / {category_name} / {status_label}")
+                        break
+
 
             if reported_total is not None:
                 reconciliations.append(
@@ -203,7 +215,7 @@ class WorkOrderTransformer(BaseTransformer[RawRecord, TransformResult]):
     def _to_int(value, *, context: str) -> int:
         """Coerce a raw cell to a non-negative int, logging (not silently
         swallowing) anything unexpected. NaN/blank -> 0, since an empty status
-        cell in this report means 'no work orders in that stage', not 'unknown'.
+        cell in this report means 'no work orders in that       ', not 'unknown'.
         """
         if value is None or (isinstance(value, float) and value != value):  # NaN
             return 0
