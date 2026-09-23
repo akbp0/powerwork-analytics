@@ -13,7 +13,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY src ./src
 COPY dashboard ./dashboard
 COPY etl ./etl
-COPY data ./data
 
 EXPOSE 5000
 

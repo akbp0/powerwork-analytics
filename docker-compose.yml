@@ -174,13 +174,17 @@ services:
     environment:
       SOURCE_DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@source-db:5432/${SOURCE_POSTGRES_DB:-source_db}
       WAREHOUSE_DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@warehouse-db:5432/${WAREHOUSE_POSTGRES_DB:-warehouse_db}
+
+    volumes:
+      - ./data/raw:/app/data/raw:ro
+
     command:
       [
         "python",
         "-m",
         "etl.run_etl",
         "--file",
-        "data/raw/2016.xlsx"
+        "/app/data/raw/2016.xlsx"
       ]
     depends_on:
       source-db:
